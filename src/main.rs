@@ -12,13 +12,13 @@ use glommio::{
     GlommioError, LocalExecutorPoolBuilder,
 };
 
-fn main() {
+fn main() -> Result<(), GlommioError<()>> {
     env_logger::init();
 
     let default_parrallelism: usize = match available_parallelism() {
         Ok(parallelism) => parallelism.into(),
         Err(e) => {
-            log::error!("Failed to get available parallelism: {}", e);
+            log::error!("Failed to get available parallelism: {}. Starting on 1 core", e);
             1
         }
     };
@@ -50,10 +50,10 @@ fn main() {
                 }
             }
         }
-    })
-    .unwrap();
+    })?;
 
     handles.join_all();
+    Ok(())
 }
 
 async fn handle_connection(downstream: TcpStream) -> Result<(), io::Error> {
