@@ -32,7 +32,7 @@ async fn handle_connection(downstream: TcpStream) {
         Err(io::Error::new(io::ErrorKind::TimedOut, "Timed out").into())
     };
     // Establish upstream connection
-    let upstream = TcpStream::connect("127.0.0.1:8080").or(timeout).await.unwrap();
+    let upstream = TcpStream::connect("127.0.0.1:2000").or(timeout).await.unwrap();
 
     let (upstream_rx, upstream_tx) = split(upstream);
     let (downstream_rx, downstream_tx) = split(downstream);
@@ -53,4 +53,9 @@ async fn handle_connection(downstream: TcpStream) {
     ];      
 
     join_all(tasks).await;
+
+    // We need to drop the streams to close the connection
+
+
+
 }
