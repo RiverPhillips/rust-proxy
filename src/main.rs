@@ -26,7 +26,6 @@ fn main() {
     })
 }
 
-
 async fn handle_connection(downstream: TcpStream) {                    
     let timeout = async {
         Timer::new(Duration::from_millis(250)).await;
