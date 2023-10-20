@@ -39,7 +39,7 @@ fn main() -> Result<(), GlommioError<()>> {
                 Ok(downstream) => {
                     glommio::spawn_local(async move {
                         if let Err(e) = handle_connection(downstream).await {
-                            log::error!("Connection error: {}", e);
+                            log::error!("Error handling connection: {}", e);
                         }
                     })
                     .detach();
@@ -66,7 +66,7 @@ async fn handle_connection(downstream: TcpStream) -> Result<(), io::Error> {
     };
     // Establish upstream connection
     let upstream = TcpStream::connect("127.0.0.1:2000").or(timeout).await?;
-
+    
     let (upstream_rx, upstream_tx) = split(upstream);
     let (downstream_rx, downstream_tx) = split(downstream);
 
