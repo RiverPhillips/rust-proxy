@@ -13,23 +13,25 @@ use glommio::{
 };
 
 fn main() {
+    env_logger::init();
+
     let ex = LocalExecutor::default();
     ex.run(async move {
         let listener = TcpListener::bind("127.0.0.1:8000").unwrap();
-        println!("Listening on {}", listener.local_addr().unwrap());
+        log::info!("Listening on {}", listener.local_addr().unwrap());
         let mut incoming = listener.incoming();
         while let Some(conn) = incoming.next().await {
             match conn {
                 Ok(downstream) => {
                     glommio::spawn_local(async move {
                         if let Err(e) = handle_connection(downstream).await {
-                            println!("Connection error: {}", e);
+                            log::error!("Connection error: {}", e);
                         }
                     })
                     .detach();
                 }
                 Err(e) => {
-                    println!("Accept error: {}", e);
+                    log::error!("Accept error: {}", e);
                     break;
                 }
             }
