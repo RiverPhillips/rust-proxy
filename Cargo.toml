@@ -2,6 +2,7 @@
 name = "rust-proxy"
 version = "0.1.0"
 edition = "2021"
+default-run = "proxy"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -11,3 +12,5 @@ futures = "0.3.28"
 futures-lite = "1.13.0"
 glommio = "0.8.0"
 log = "0.4.20"
+
+
