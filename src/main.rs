@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{thread::available_parallelism, time::Duration};
 
 use futures::future::join_all;
 use futures_lite::{
@@ -9,14 +9,28 @@ use futures_lite::{
 use glommio::{
     net::{TcpListener, TcpStream},
     timer::Timer,
-    LocalExecutor, GlommioError,
+    GlommioError, LocalExecutorPoolBuilder,
 };
 
 fn main() {
     env_logger::init();
 
-    let ex = LocalExecutor::default();
-    ex.run(async move {
+    let default_parrallelism: usize = match available_parallelism() {
+        Ok(parallelism) => parallelism.into(),
+        Err(e) => {
+            log::error!("Failed to get available parallelism: {}", e);
+            1
+        }
+    };
+
+    let handles = LocalExecutorPoolBuilder::new(glommio::PoolPlacement::MaxSpread(
+        default_parrallelism,
+        None,
+    ))
+    .on_all_shards(|| async move {
+        let id = glommio::executor().id();
+        log::debug!("Starting on executor {}", id);
+
         let listener = TcpListener::bind("127.0.0.1:8000").unwrap();
         log::info!("Listening on {}", listener.local_addr().unwrap());
         let mut incoming = listener.incoming();
@@ -37,17 +51,21 @@ fn main() {
             }
         }
     })
+    .unwrap();
+
+    handles.join_all();
 }
 
-async fn handle_connection(downstream: TcpStream)  -> Result<(), io::Error> {
+async fn handle_connection(downstream: TcpStream) -> Result<(), io::Error> {
     let timeout = async {
         Timer::new(Duration::from_millis(250)).await;
-        Err(GlommioError::IoError(io::Error::new(io::ErrorKind::TimedOut, "Timed out connecting to upstream")))
+        Err(GlommioError::IoError(io::Error::new(
+            io::ErrorKind::TimedOut,
+            "Timed out connecting to upstream",
+        )))
     };
     // Establish upstream connection
-    let upstream = TcpStream::connect("127.0.0.1:2000")
-        .or(timeout)
-        .await?;
+    let upstream = TcpStream::connect("127.0.0.1:2000").or(timeout).await?;
 
     let (upstream_rx, upstream_tx) = split(upstream);
     let (downstream_rx, downstream_tx) = split(downstream);
