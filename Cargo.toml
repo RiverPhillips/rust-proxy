@@ -2,11 +2,11 @@
 name = "rust-proxy"
 version = "0.1.0"
 edition = "2021"
-default-run = "proxy"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+clap = { version = "4.4.6", features = ["derive"] }
 env_logger = "0.10.0"
 futures = "0.3.28"
 futures-lite = "1.13.0"
