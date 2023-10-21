@@ -12,6 +12,7 @@ use glommio::{
     timer::Timer,
     GlommioError, LocalExecutorPoolBuilder,
 };
+use tracing::{debug, error, info};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about=None)]
@@ -29,7 +30,7 @@ enum Commands {
 }
 
 fn main() -> Result<(), GlommioError<()>> {
-    env_logger::init();
+    tracing_subscriber::fmt::init();
 
     let cli = Cli::parse();
 
@@ -38,7 +39,7 @@ fn main() -> Result<(), GlommioError<()>> {
         None => match available_parallelism() {
             Ok(parallelism) => parallelism.into(),
             Err(e) => {
-                log::error!(
+                error!(
                     "Failed to get available parallelism: {}. Starting on 1 core",
                     e
                 );
@@ -86,23 +87,23 @@ fn proxy(concurrency: usize) -> Result<(), GlommioError<()>> {
     ))
     .on_all_shards(|| async move {
         let id = glommio::executor().id();
-        log::debug!("Starting on executor {}", id);
+        debug!("Starting on executor {}", id);
 
         let listener = TcpListener::bind("127.0.0.1:8000").unwrap();
-        log::info!("Listening on {}", listener.local_addr().unwrap());
+        info!("Listening on {}", listener.local_addr().unwrap());
         let mut incoming = listener.incoming();
         while let Some(conn) = incoming.next().await {
             match conn {
                 Ok(downstream) => {
                     glommio::spawn_local(async move {
                         if let Err(e) = handle_proxy_connection(downstream).await {
-                            log::error!("Error handling connection: {}", e);
+                            error!("Error handling connection: {}", e);
                         }
                     })
                     .detach();
                 }
                 Err(e) => {
-                    log::error!("Accept error: {}", e);
+                    error!("Accept error: {}", e);
                     break;
                 }
             }
@@ -120,23 +121,23 @@ fn echo(concurrency: usize) -> Result<(), GlommioError<()>> {
     ))
     .on_all_shards(|| async move {
         let id = glommio::executor().id();
-        log::debug!("Starting on executor {}", id);
+        debug!("Starting on executor {}", id);
 
         let listener = TcpListener::bind("127.0.0.1:2000").unwrap();
-        log::info!("Listening on {}", listener.local_addr().unwrap());
+        info!("Listening on {}", listener.local_addr().unwrap());
         let mut incoming = listener.incoming();
         while let Some(conn) = incoming.next().await {
             match conn {
                 Ok(downstream) => {
                     glommio::spawn_local(async move {
                         if let Err(e) = handle_echo_connection(downstream).await {
-                            log::error!("Connection error: {}", e);
+                            error!("Connection error: {}", e);
                         }
                     })
                     .detach();
                 }
                 Err(e) => {
-                    log::error!("Accept error: {}", e);
+                    error!("Accept error: {}", e);
                     break;
                 }
             }
