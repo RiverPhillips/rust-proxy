@@ -6,6 +6,8 @@ Heavily inspired by Envoy
 
 ## Planned Features
 
+- [ ] Network Observability
 - [ ] Load Balancing
+- [ ] Stunnel (TLS) support
 - [ ] xDS Config
 - [ ] TCP Filters
