@@ -2,6 +2,7 @@ use std::thread::available_parallelism;
 
 use clap::{Parser, Subcommand};
 use glommio::GlommioError;
+use tracing::error;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about=None)]
@@ -10,7 +11,7 @@ struct Cli {
     concurrency: Option<usize>,
 
     #[command(subcommand)]
-    command: Option<Commands>
+    command: Option<Commands>,
 }
 
 #[derive(Subcommand)]

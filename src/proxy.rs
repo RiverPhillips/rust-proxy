@@ -1,44 +1,46 @@
 use std::time::Duration;
 
 use futures::future::join_all;
-use glommio::{net::{TcpListener, TcpStream}, GlommioError, LocalExecutorPoolBuilder, DefaultStallDetectionHandler, timer::Timer, enclose};
 use futures_lite::{
     io::{self, copy, split},
-    stream::StreamExt, FutureExt,
+    stream::StreamExt,
+    FutureExt,
+};
+use glommio::{
+    net::{TcpListener, TcpStream},
+    timer::Timer,
+    DefaultStallDetectionHandler, GlommioError, LocalExecutorPoolBuilder,
 };
 use tracing::{debug, error, info};
 
-
 pub fn run(concurrency: usize) -> Result<(), GlommioError<()>> {
-    let handles = LocalExecutorPoolBuilder::new(glommio::PoolPlacement::MaxSpread(
-        concurrency,
-        None,
-    ))
-    .detect_stalls(Some(Box::new(|| Box::new(DefaultStallDetectionHandler{}))))
-    .on_all_shards(|| async move {
-        let id = glommio::executor().id();
-        debug!("Starting on executor {}", id);
+    let handles =
+        LocalExecutorPoolBuilder::new(glommio::PoolPlacement::MaxSpread(concurrency, None))
+            .detect_stalls(Some(Box::new(|| Box::new(DefaultStallDetectionHandler {}))))
+            .on_all_shards(|| async move {
+                let id = glommio::executor().id();
+                debug!("Starting on executor {}", id);
 
-        let listener = TcpListener::bind("127.0.0.1:8000").unwrap();
-        info!("Listening on {}", listener.local_addr().unwrap());
-        let mut incoming = listener.incoming();
-        while let Some(conn) = incoming.next().await {
-            match conn {
-                Ok(downstream) => {
-                    glommio::spawn_local(async move {
-                        if let Err(e) = handle_proxy_connection(downstream).await {
-                            error!("Error handling connection: {}", e);
+                let listener = TcpListener::bind("127.0.0.1:8000").unwrap();
+                info!("Listening on {}", listener.local_addr().unwrap());
+                let mut incoming = listener.incoming();
+                while let Some(conn) = incoming.next().await {
+                    match conn {
+                        Ok(downstream) => {
+                            glommio::spawn_local(async move {
+                                if let Err(e) = handle_proxy_connection(downstream).await {
+                                    error!("Error handling connection: {}", e);
+                                }
+                            })
+                            .detach();
                         }
-                    })
-                    .detach();
+                        Err(e) => {
+                            error!("Accept error: {}", e);
+                            break;
+                        }
+                    }
                 }
-                Err(e) => {
-                    error!("Accept error: {}", e);
-                    break;
-                }
-            }
-        }
-    })?;
+            })?;
 
     handles.join_all();
     Ok(())
