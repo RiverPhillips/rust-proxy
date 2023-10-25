@@ -774,7 +774,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "rust-proxy"
+name = "rust_proxy"
 version = "0.1.0"
 dependencies = [
  "clap",
